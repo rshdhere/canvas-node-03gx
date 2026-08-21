@@ -75,6 +75,7 @@ export function ChessGame() {
     to: Coord;
   } | null>(null);
   const [flipped, setFlipped] = useState(false);
+  const [past, setPast] = useState<GameState[]>([]);
 
   const legalTargets = useMemo(() => {
     if (!selected) return [];
@@ -91,16 +92,35 @@ export function ChessGame() {
 
   const reset = () => {
     setState(createInitialState());
+    setPast([]);
     setSelected(null);
     setPromotionPending(null);
     setAiThinking(false);
+  };
+
+  const undo = () => {
+    if (past.length === 0 || aiThinking) return;
+    // In AI mode, undo the AI reply and the human move together when possible
+    if (mode === "ai" && past.length >= 2) {
+      const target = past[past.length - 2];
+      setPast((p) => p.slice(0, -2));
+      setState(target);
+    } else {
+      const target = past[past.length - 1];
+      setPast((p) => p.slice(0, -1));
+      setState(target);
+    }
+    setSelected(null);
+    setPromotionPending(null);
   };
 
   const applyHumanMove = useCallback(
     (from: Coord, to: Coord, promotion: PieceType = "q") => {
       setState((prev) => {
         const next = tryMove(prev, from, to, promotion);
-        return next ?? prev;
+        if (!next) return prev;
+        setPast((p) => [...p, prev]);
+        return next;
       });
       setSelected(null);
       setPromotionPending(null);
@@ -145,7 +165,12 @@ export function ChessGame() {
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       const move = chooseAiMove(state, 2);
-      if (move) setState((prev) => makeMove(prev, move));
+      if (move) {
+        setState((prev) => {
+          setPast((p) => [...p, prev]);
+          return makeMove(prev, move);
+        });
+      }
       setAiThinking(false);
     }, 350);
     return () => {
@@ -195,6 +220,14 @@ export function ChessGame() {
               className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-stone-200 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300"
             >
               Flip board
+            </button>
+            <button
+              type="button"
+              onClick={undo}
+              disabled={past.length === 0 || aiThinking}
+              className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-stone-200 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Undo
             </button>
             <button
               type="button"
