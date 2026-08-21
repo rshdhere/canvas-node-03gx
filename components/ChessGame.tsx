@@ -329,25 +329,32 @@ export function ChessGame() {
               Choose the piece to promote to.
             </p>
             <div className="mt-4 grid grid-cols-4 gap-2">
-              {(["q", "r", "b", "n"] as PieceType[]).map((t) => (
+              {(
+                [
+                  { type: "q" as const, w: "♕", b: "♛" },
+                  { type: "r" as const, w: "♖", b: "♜" },
+                  { type: "b" as const, w: "♗", b: "♝" },
+                  { type: "n" as const, w: "♘", b: "♞" },
+                ] satisfies { type: PieceType; w: string; b: string }[]
+              ).map((opt) => (
                 <button
-                  key={t}
+                  key={opt.type}
                   type="button"
                   onClick={() =>
                     applyHumanMove(
                       promotionPending.from,
                       promotionPending.to,
-                      t,
+                      opt.type,
                     )
                   }
                   className="flex flex-col items-center gap-1 rounded-xl bg-white/5 py-3 text-stone-100 transition hover:bg-amber-500 hover:text-stone-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300"
                 >
                   <span className="text-3xl">
-                    {state.turn === "w"
-                      ? { q: "♕", r: "♖", b: "♗", n: "♘" }[t]
-                      : { q: "♛", r: "♜", b: "♝", n: "♞" }[t]}
+                    {state.turn === "w" ? opt.w : opt.b}
                   </span>
-                  <span className="text-xs font-medium">{PIECE_NAMES[t]}</span>
+                  <span className="text-xs font-medium">
+                    {PIECE_NAMES[opt.type]}
+                  </span>
                 </button>
               ))}
             </div>
